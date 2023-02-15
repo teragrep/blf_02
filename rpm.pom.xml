@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	       xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <packaging>rpm</packaging>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>blf_02</artifactId>
+  <version>${revision}${sha1}${changelist}.el7.x86_64</version>
+  <name>blf_02</name>
+  <description>blf_02</description>
+  <groupId>com.teragrep</groupId>
+  <url>https://teragrep.com</url>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <java.version>1.8</java.version>
+    <revision>0.0.1</revision>
+    <changelist>-SNAPSHOT</changelist>
+    <sha1/>
+  </properties>
+  <scm>
+    <connection>scm:git:https://github.com/teragrep/blf_02.git</connection>
+    <developerConnection>scm:git:git@github.com:teragrep/blf_02.git</developerConnection>
+    <url>https://github.com/teragrep/blf_02/tree/master</url>
+  </scm>
+  <build>
+    <directory>${project.basedir}/target</directory>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>rpm-maven-plugin</artifactId>
+        <version>2.2.0</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <id>default-rpm</id>
+            <goals>
+              <goal>rpm</goal>
+            </goals>
+            <phase>package</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <summary>${project.groupId}-${project.artifactId}</summary>
+          <name>${project.groupId}-${project.artifactId}</name>
+          <version>${project.version}</version>
+          <release>${env.BUILD_ID}</release>
+          <license>Proprietary</license>
+          <distribution>Fail-Safe Log Management Suite</distribution>
+          <vendor>https://fail-safe.net/</vendor>
+          <packager>Fail-Safe &lt;servicedesk@fail-safe.net&gt;</packager>
+          <group>Fail-Safe/LogManagementSuite</group>
+          <description>${project.groupId}-${project.artifactId}</description>
+          <needarch>true</needarch>
+          <defaultUsername>root</defaultUsername>
+          <defaultGroupname>root</defaultGroupname>
+          <defaultFilemode>0644</defaultFilemode>
+          <defaultDirmode>0755</defaultDirmode>
+          <defineStatements>
+            <!-- _python_bytecompile_extra 0 doesn't work so we take the original script and just replace what we do not want -->
+            <defineStatement>__os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')</defineStatement>
+            <defineStatement>_build_id_links none</defineStatement>
+          </defineStatements>
+          <mappings>
+            <!-- the payload itself -->
+            <mapping>
+              <directory>/opt/teragrep/${project.artifactId}/lib</directory>
+              <directoryIncluded>true</directoryIncluded>
+              <filemode>755</filemode>
+              <dirmode>755</dirmode>
+              <username>root</username>
+              <groupname>root</groupname>
+              <recurseDirectories>true</recurseDirectories>
+              <sources>
+                <source>
+                  <location>${project.basedir}/buildroot/usr/lib64/mysql/plugin</location>
+                </source>
+              </sources>
+            </mapping>
+            <!-- (un)install scripts -->
+            <mapping>
+              <directory>/opt/teragrep/${project.artifactId}/share</directory>
+              <directoryIncluded>true</directoryIncluded>
+              <filemode>755</filemode>
+              <dirmode>755</dirmode>
+              <username>root</username>
+              <groupname>root</groupname>
+              <recurseDirectories>true</recurseDirectories>
+              <sources>
+                <source>
+                  <location>${project.basedir}/installdb.sql</location>
+                </source>
+                <source>
+                  <location>${project.basedir}/uninstalldb.sql</location>
+                </source>
+              </sources>
+            </mapping>
+            <!-- symlink for the payload -->
+            <mapping>
+              <directory>/usr/lib64/mysql/plugin</directory>
+              <sources>
+                <softlinkSource>
+                  <location>/opt/teragrep/${project.artifactId}/lib/lib_mysqludf_bloom.so</location>
+                </softlinkSource>
+              </sources>
+            </mapping>
+          </mappings>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/${env.GITHUB_REPOSITORY}</url>
+    </repository>
+  </distributionManagement>
+</project>
