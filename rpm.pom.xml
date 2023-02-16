@@ -45,7 +45,7 @@
           <summary>${project.groupId}-${project.artifactId}</summary>
           <name>${project.groupId}-${project.artifactId}</name>
           <version>${project.version}</version>
-          <release>${ENV.GITHUB_RUN_NUMBER}</release>
+          <release>${env.GITHUB_RUN_NUMBER}</release>
           <license>Proprietary</license>
           <distribution>Fail-Safe Log Management Suite</distribution>
           <vendor>https://fail-safe.net/</vendor>
