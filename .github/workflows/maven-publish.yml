@@ -37,6 +37,7 @@ jobs:
       run: mvn -s ${{ github.workspace}}/settings.xml -f rpm.pom.xml -B -Drevision=${{ env.RELEASE_VERSION }} -Dsha1= -Dchangelist= deploy
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_RUN_NUMBER: ${{ github.run_number }}
 
     - name: Attach rpm as artifact
       uses: softprops/action-gh-release@v1
