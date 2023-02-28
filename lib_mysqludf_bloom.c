@@ -78,11 +78,12 @@ my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long
 
 	char* b1=args->args[0];
 	char* b2=args->args[1];
-	int limit = args->lengths[0];
+	int limit_a = args->lengths[0];
+	int limit_b = args->lengths[1];
 	unsigned char a;
-	unsigned char  b;
+	unsigned char b;
 	int i;
-	for (i=0;i<limit;i++)
+	for (i=0; i<limit_a && i<limit_b; i++)
 	{
 		a = (unsigned char) b1[i];
 		b = (unsigned char) b2[i];
