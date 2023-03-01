@@ -79,7 +79,7 @@ my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long
 	char* b1=args->args[0];
 	char* b2=args->args[1];
 	int limit_a = args->lengths[0];
-	int limit_b = args->lengths[1]
+	int limit_b = args->lengths[1];
 	if (limit_a != limit_b)
 	{
 	    return 0;
