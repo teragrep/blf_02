@@ -107,3 +107,101 @@ To remove the library from your system:
 make uninstalldb
 make uninstall
 ```
+
+# Examples
+
+## Spark
+
+Short demo how to use in practice using spark and scala.
+
+Step 1. Creating and storing filter to database:
+```
+%spark
+
+// Generate and upload a spark bloomfilter to database
+
+import spark.implicits._
+import org.apache.spark.sql._
+import org.apache.spark.sql.types._
+import java.sql.DriverManager
+import org.apache.spark.util.sketch.BloomFilter
+import java.io.{ByteArrayOutputStream,ByteArrayInputStream, ObjectOutputStream, InputStream}
+
+// Filter parameters
+val expected: Long = 500
+val fpp: Double = 0.3
+
+val dburl = "DATABASE_URL"
+val updatesql = "INSERT token_partitions (`partition`, `filter`) VALUES (?,?)"
+val conn = DriverManager.getConnection(dburl,"streamdb","streamdb_pass")
+
+// Create a spark Dataframe with values 'one','two' and 'three'
+val in1 = spark.sparkContext.parallelize(List("one","two","three"))
+val df = in1.toDF("tokens")
+
+val ps = conn.prepareStatement(updatesql)
+
+// Create a bloomfilter from the Dataframe
+val filter = df.stat.bloomFilter($"tokens", expected, fpp)
+println(filter.mightContain("one"))
+
+// Write filter bit array to output stream
+val baos = new ByteArrayOutputStream
+filter.writeTo(baos)
+val is: InputStream = new ByteArrayInputStream(baos.toByteArray())
+ps.setString(1,"1")
+ps.setBlob(2,is)
+val update = ps.executeUpdate
+println("Updated rows: "+ update)
+df.show()
+conn.close()
+```
+
+Step 2. Finding matching filters:
+```
+%spark
+
+// Create a bloomfilter and find matches
+import spark.implicits._
+import org.apache.spark.sql._
+import org.apache.spark.sql.types._
+import java.sql.DriverManager
+import org.apache.spark.util.sketch.BloomFilter
+import java.io.{ByteArrayOutputStream,ByteArrayInputStream, ObjectOutputStream, InputStream}
+
+val expected: Long = 500
+val fpp: Double = 0.3
+
+val dburl = "DATABASE_URL"
+val conn = DriverManager.getConnection(dburl,"streamdb","streamdb_pass")
+
+val updatesql = "SELECT `partition` FROM token_partitions WHERE bloommatch(?, token_partitions.filter);"
+val ps = conn.prepareStatement(updatesql)
+
+// Creating filter with values 'one' and 'two'
+val in2 = spark.sparkContext.parallelize(List("one","two"))
+val df2 = in2.toDF("tokens")
+val filter = df2.stat.bloomFilter($"tokens", expected, fpp)
+
+val baos = new ByteArrayOutputStream
+            filter.writeTo(baos)
+            baos.flush
+            val is :InputStream = new ByteArrayInputStream(baos.toByteArray())
+            ps.setBlob(1, is)
+            val rs = ps.executeQuery
+
+// Will find a match since tokens searched are a subset of the database filter
+val resultList = Iterator.from(0).takeWhile(_ => rs.next()).map(_ => rs.getString(1)).toList
+println("Found matches: " + resultList.size)
+conn.close()
+```
+
+SQL table used in demo.
+```
+CREATE TABLE `token_partitions` (
+`id` INT unsigned NOT NULL auto_increment,
+`partition` VARCHAR(100),
+`filter` BLOB,
+PRIMARY KEY (`id`)
+);
+```
