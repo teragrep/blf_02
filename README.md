@@ -133,7 +133,7 @@ val fpp: Double = 0.3
 
 val dburl = "DATABASE_URL"
 val updatesql = "INSERT token_partitions (`partition`, `filter`) VALUES (?,?)"
-val conn = DriverManager.getConnection(dburl,"streamdb","streamdb_pass")
+val conn = DriverManager.getConnection(dburl,"DB_USERNAME","DB_PASSWORD")
 
 // Create a spark Dataframe with values 'one','two' and 'three'
 val in1 = spark.sparkContext.parallelize(List("one","two","three"))
@@ -173,7 +173,7 @@ val expected: Long = 500
 val fpp: Double = 0.3
 
 val dburl = "DATABASE_URL"
-val conn = DriverManager.getConnection(dburl,"streamdb","streamdb_pass")
+val conn = DriverManager.getConnection(dburl,"DB_USERNAME","DB_PASSWORD")
 
 val updatesql = "SELECT `partition` FROM token_partitions WHERE bloommatch(?, token_partitions.filter);"
 val ps = conn.prepareStatement(updatesql)
