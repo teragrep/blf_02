@@ -27,6 +27,10 @@
 #include "config.h"
 #include <stdio.h>
 
+#include <stdint.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+
 /* For Windows, define PACKAGE_STRING in the VS project */
 #ifndef __WIN__
 #include "config.h"
@@ -69,35 +73,46 @@ void bloommatch_deinit(UDF_INIT *initid)
 {
 }
 
-my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,	char *is_null, char *error)
+my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length, char *is_null, char *error)
 {
 	if (args->lengths[0] > args->lengths[1])
 	{
 		return 0;
 	}
 
-	char* b1=args->args[0];
-	char* b2=args->args[1];
+	int* first_array=(int*)(args->args[0]);
+	int* second_array=(int*)(args->args[1]);
+
 	int limit_a = args->lengths[0];
 	int limit_b = args->lengths[1];
-	if (limit_a != limit_b)
+
+        if (limit_a != limit_b)
 	{
 	    return 0;
 	}
 
-	unsigned char a;
-	unsigned char b;
-	int i;
-	for (i=0;i<limit_a;i++)
-	{
-		a = (unsigned char) b1[i];
-		b = (unsigned char) b2[i];
-		if ((a & b) != a)
-		{
-			return 0;
-		}
-	}
-	return 1;
+        int i;
+        for (; i + 8 <= limit_a; i += 8) {
+            // load 256-bit chunks of each array
+            __m256i first_values = _mm256_load_si256((__m256i*) &first_array[i]);
+            __m256i second_values = _mm256_load_si256((__m256i*) &second_array[i]);
+
+            // xor each pair of 32-bit integers in the 256-bit chunks
+            if (_mm256_testz_si256(_mm256_xor_si256(first_values, second_values), first_values) != 1) {
+                return 0;
+            }
+        }
+        // handle left-over
+        int a, b;
+        for (; i < limit_a; ++i) {
+            a = first_array[i];
+            b = second_array[i];
+            if ((a & b) != a)
+                {
+                    return 0;
+                }
+        }
+        return 1;
 }
 
 
@@ -160,4 +175,3 @@ char* bloomupdate(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long*
 	*length = limit;
 	return initid->ptr;
 }
-
