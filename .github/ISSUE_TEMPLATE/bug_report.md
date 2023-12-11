@@ -7,22 +7,14 @@ assignees: ''
 
 ---
 
-**Describe the bug**
-Please explain what happened and provide the context in which the bug occurred.
+**Description**
+<!-- Please describe shortly your feature idea. -->
  
-**Expected behavior**
-Please tell us why you think the behavior is unexpected. If you can, please copy-paste logs or error messages you got while facing the bug.
+**Use case or motivation behind the feature request**
+<!-- Please tell us what you would like to happen. Rather than explaining the implementation process, we would appreciate to hear what you are trying to achieve with your feature. -->
  
-**How to Reproduce**
-Please provide us reproducible step-by-step guide on how to reproduce the bug. Please keep in mind that non-reproducible issues will be closed.
- 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
- 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+**Related issues**
+<!-- If there are any, please list issues that are associated with your feature request. -->
  
 **Additional context**
-Add any other context about the problem here.
+<!-- Add any other context or screenshots about the feature request here. -->

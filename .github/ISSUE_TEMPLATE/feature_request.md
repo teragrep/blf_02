@@ -8,13 +8,13 @@ assignees: ''
 ---
 
 **Description**
-Please describe shortly your feature idea.
+<!-- Please explain what do you see as an issue in the documentation and why you think it is an issue. -->
  
-**Use case or motivation behind the feature request**
-Please tell us what you would like to happen. Rather than explaining the implementation process, we would appreciate to hear what you are trying to achieve with your feature.
+**Link to the documentation**
+<!-- Please paste the link or links to the documentation related to the issue. -->
  
-**Related issues**
-If there are any, please list issues that are associated with your feature request.
+**How to solve the problem**
+<!-- Please tell us how you think the documentation could be fixed. -->
  
-**Additional context**
-Add any other context or screenshots about the feature request here.
+**Additional**
+<!-- Is there anything else we should know? -->
