@@ -7,22 +7,22 @@ License: Apache
 
 Bloomfilters are assumed to be arrays of bytes in little-endian order.  
 
-# Installation
+## Installation
 Install package as normal.
 ```sh
 yum install blf_02.rpm
 ```
 
-## Enabling
+### Enabling
 
 Read more for permissions required: https://mariadb.com/kb/en/user-defined-functions-security/
 
-### Option 1 - Execute the premade query
+#### Option 1 - Execute the premade query
 ```
 mariadb < /opt/teragrep/blf_02/share/installdb.sql
 ```
 
-### Option 2 - Execute the queries manually
+#### Option 2 - Execute the queries manually
 
 ```
 USE mysql;
@@ -33,16 +33,16 @@ CREATE FUNCTION bloommatch RETURNS integer SONAME 'lib_mysqludf_bloom.so';
 CREATE FUNCTION bloomupdate RETURNS STRING SONAME 'lib_mysqludf_bloom.so';
 ```
 
-## Disabling
+### Disabling
 
 Read more for permissions required: https://mariadb.com/kb/en/user-defined-functions-security/
 
-### Option 1 - Execute the premade query
+#### Option 1 - Execute the premade query
 ```
 mariadb < /opt/teragrep/blf_02/share/uninstalldb.sql
 ```
 
-### Option 2 - Execute the queries manually
+#### Option 2 - Execute the queries manually
 
 ```
 USE mysql;
@@ -51,7 +51,7 @@ DROP FUNCTION IF EXISTS bloommatch;
 DROP FUNCTION IF EXISTS bloomupdate;
 ```
 
-# Functions
+## Functions
 
 ```
 bloommatch( blob a, blob b )
@@ -84,7 +84,7 @@ stmt.executeUpdate();
 // bloom filters on rows with id of 5 have been updated to include values from the blob.
 ```
 
-# Development
+## Development
 
 Mysql client and server headers are required to compile this code.
 
@@ -108,9 +108,9 @@ make uninstalldb
 make uninstall
 ```
 
-# Examples
+## Examples
 
-## Spark
+### Spark
 
 Short demo how to use in practice using spark and scala.
 
@@ -205,3 +205,24 @@ CREATE TABLE `token_partitions` (
 PRIMARY KEY (`id`)
 );
 ```
+
+## Contributing
+
+// Change the repository name in the issues link to match with your project's name
+
+You can involve yourself with our project by https://github.com/teragrep/repo-template/issues/new/choose[opening an issue] or submitting a pull request. 
+
+Contribution requirements:
+
+. *All changes must be accompanied by a new or changed test.* If you think testing is not required in your pull request, include a sufficient explanation as why you think so.
+. Security checks must pass
+. Pull requests must align with the principles and http://www.extremeprogramming.org/values.html[values] of extreme programming.
+. Pull requests must follow the principles of Object Thinking and Elegant Objects (EO).
+
+Read more in our https://github.com/teragrep/teragrep/blob/main/contributing.adoc[Contributing Guideline].
+
+### Contributor License Agreement
+
+Contributors must sign https://github.com/teragrep/teragrep/blob/main/cla.adoc[Teragrep Contributor License Agreement] before a pull request is accepted to organization's repositories. 
+
+You need to submit the CLA only once. After submitting the CLA you can contribute to all Teragrep's repositories. 
