@@ -26,7 +26,7 @@
 
 #include "config.h"
 #include <stdio.h>
-
+#include <stdlib.h>
 #include <stdint.h>
 
 /* For Windows, define PACKAGE_STRING in the VS project */
