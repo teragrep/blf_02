@@ -101,7 +101,7 @@
               <directory>/usr/lib64/mariadb/plugin</directory>
               <sources>
                 <softlinkSource>
-                  <location>/opt/teragrep/${project.artifactId}/lib/lib_mariadbudf_bloom.so</location>
+                  <location>/opt/teragrep/${project.artifactId}/lib/lib_mysqludf_bloom.so</location>
                 </softlinkSource>
               </sources>
             </mapping>
