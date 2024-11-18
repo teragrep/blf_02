@@ -75,9 +75,9 @@ void bloommatch_deinit(UDF_INIT *initid)
 my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *length, char *is_null, char *error)
 {
     if (args->lengths[0] != args->lengths[1])
-    {
-        return 0;
-    }
+        {
+            return 0;
+        }
 
     const uint8_t *b1 = (const uint8_t *)args->args[0];
     const uint8_t *b2 = (const uint8_t *)args->args[1];
