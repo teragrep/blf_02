@@ -89,7 +89,8 @@ my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long
             return 0;
         }
     }
-
+    
+    return 1;
 }
 
 my_bool bloomupdate_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
