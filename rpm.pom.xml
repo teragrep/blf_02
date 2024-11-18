@@ -5,7 +5,7 @@
   <packaging>rpm</packaging>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>blf_02</artifactId>
-  <version>${revision}${sha1}${changelist}.el7</version>
+  <version>${revision}${sha1}${changelist}.el8</version>
   <name>blf_02</name>
   <description>blf_02</description>
   <groupId>com.teragrep</groupId>
@@ -74,7 +74,7 @@
               <recurseDirectories>true</recurseDirectories>
               <sources>
                 <source>
-                  <location>${project.basedir}/buildroot/usr/lib64/mysql/plugin</location>
+                  <location>${project.basedir}/buildroot/usr/lib64/mariadb/plugin</location>
                 </source>
               </sources>
             </mapping>
@@ -98,7 +98,7 @@
             </mapping>
             <!-- symlink for the payload -->
             <mapping>
-              <directory>/usr/lib64/mysql/plugin</directory>
+              <directory>/usr/lib64/mariadb/plugin</directory>
               <sources>
                 <softlinkSource>
                   <location>/opt/teragrep/${project.artifactId}/lib/lib_mysqludf_bloom.so</location>

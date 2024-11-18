@@ -26,6 +26,8 @@
 
 #include "config.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 /* For Windows, define PACKAGE_STRING in the VS project */
 #ifndef __WIN__
@@ -69,37 +71,27 @@ void bloommatch_deinit(UDF_INIT *initid)
 {
 }
 
-my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length,	char *is_null, char *error)
+
+my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *length, char *is_null, char *error)
 {
-	if (args->lengths[0] > args->lengths[1])
-	{
-		return 0;
-	}
+    if (args->lengths[0] != args->lengths[1])
+        {
+            return 0;
+        }
 
-	char* b1=args->args[0];
-	char* b2=args->args[1];
-	int limit_a = args->lengths[0];
-	int limit_b = args->lengths[1];
-	if (limit_a != limit_b)
-	{
-	    return 0;
-	}
+    const uint8_t *b1 = (const uint8_t *)args->args[0];
+    const uint8_t *b2 = (const uint8_t *)args->args[1];
 
-	unsigned char a;
-	unsigned char b;
-	int i;
-	for (i=0;i<limit_a;i++)
-	{
-		a = (unsigned char) b1[i];
-		b = (unsigned char) b2[i];
-		if ((a & b) != a)
-		{
-			return 0;
-		}
-	}
-	return 1;
+    size_t limit = args->lengths[0];
+
+    for (size_t i = 0; i < limit; i++) {
+        if ((b1[i] & b2[i]) != b1[i]) {
+            return 0;
+        }
+    }
+    
+    return 1;
 }
-
 
 my_bool bloomupdate_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
@@ -160,4 +152,3 @@ char* bloomupdate(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long*
 	*length = limit;
 	return initid->ptr;
 }
-
