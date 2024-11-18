@@ -73,48 +73,60 @@ void bloommatch_deinit(UDF_INIT *initid)
 {
 }
 
-my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char* result, unsigned long* length, char *is_null, char *error)
+
+my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *length, char *is_null, char *error)
 {
-	if (args->lengths[0] > args->lengths[1])
-	{
-		return 0;
-	}
-
-	int* first_array=(int*)(args->args[0]);
-	int* second_array=(int*)(args->args[1]);
-
-	int limit_a = args->lengths[0];
-	int limit_b = args->lengths[1];
-
-        if (limit_a != limit_b)
-	{
-	    return 0;
-	}
-
-        int i;
-        for (; i + 8 <= limit_a; i += 8) {
-            // load 256-bit chunks of each array
-            __m256i first_values = _mm256_load_si256((__m256i*) &first_array[i]);
-            __m256i second_values = _mm256_load_si256((__m256i*) &second_array[i]);
-
-            // xor each pair of 32-bit integers in the 256-bit chunks
-            if (_mm256_testz_si256(_mm256_xor_si256(first_values, second_values), first_values) != 1) {
-                return 0;
-            }
+    if (args->lengths[0] > args->lengths[1])
+        {
+            return 0;
         }
-        // handle left-over
-        int a, b;
-        for (; i < limit_a; ++i) {
-            a = first_array[i];
-            b = second_array[i];
+
+    char *first_array = args->args[0];
+    char *second_array = args->args[1];
+    int limit_a = args->lengths[0];
+    int limit_b = args->lengths[1];
+    
+    if (limit_a != limit_b)
+        {
+            return 0;
+        }
+
+    int i = 0;
+
+    // load 32 byte chunks and process them with avx2 instructions
+    int chunks = limit_a / 32;
+    for (i = 0; i < chunks * 32; i += 32)
+        {
+            // load 32 bytes from each of the arrays with loadu (unaligned memory access)
+            __m256i vec_a = _mm256_loadu_si256((__m256i *)&first_array[i]);
+            __m256i vec_b = _mm256_loadu_si256((__m256i *)&second_array[i]);
+
+            // perform bitwise and which results into a mask
+            __m256i result = _mm256_and_si256(vec_a, vec_b);
+
+            // compare mask with the requested match
+            __m256i cmp = _mm256_cmpeq_epi8(result, vec_a);
+
+            // verify that all bytes are set (0xFFFFFFFF, or -1 as a signed integer) or filter does not match
+            if (_mm256_movemask_epi8(cmp) != -1)
+                {
+                    return 0;
+                }
+        }
+
+    // process reminder of the bytes, that did not fit into 32 byte chunks
+    for (; i < limit_a; i++)
+        {
+            unsigned char a = (unsigned char)first_array[i];
+            unsigned char b = (unsigned char)second_array[i];
             if ((a & b) != a)
                 {
                     return 0;
                 }
         }
-        return 1;
-}
 
+    return 1;
+}
 
 my_bool bloomupdate_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
