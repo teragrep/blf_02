@@ -28,8 +28,6 @@
 #include <stdio.h>
 
 #include <stdint.h>
-#include <smmintrin.h>
-#include <immintrin.h>
 
 /* For Windows, define PACKAGE_STRING in the VS project */
 #ifndef __WIN__
@@ -76,56 +74,22 @@ void bloommatch_deinit(UDF_INIT *initid)
 
 my_bool bloommatch(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *length, char *is_null, char *error)
 {
-    if (args->lengths[0] > args->lengths[1])
-        {
+    if (args->lengths[0] != args->lengths[1])
+    {
+        return 0;
+    }
+
+    const uint8_t *b1 = (const uint8_t *)args->args[0];
+    const uint8_t *b2 = (const uint8_t *)args->args[1];
+
+    size_t limit = args->lengths[0];
+
+    for (size_t i = 0; i < limit; i++) {
+        if ((b1[i] & b2[i]) != b1[i]) {
             return 0;
         }
+    }
 
-    char *first_array = args->args[0];
-    char *second_array = args->args[1];
-    int limit_a = args->lengths[0];
-    int limit_b = args->lengths[1];
-    
-    if (limit_a != limit_b)
-        {
-            return 0;
-        }
-
-    int i = 0;
-
-    // load 32 byte chunks and process them with avx2 instructions
-    int chunks = limit_a / 32;
-    for (i = 0; i < chunks * 32; i += 32)
-        {
-            // load 32 bytes from each of the arrays with loadu (unaligned memory access)
-            __m256i vec_a = _mm256_loadu_si256((__m256i *)&first_array[i]);
-            __m256i vec_b = _mm256_loadu_si256((__m256i *)&second_array[i]);
-
-            // perform bitwise and which results into a mask
-            __m256i result = _mm256_and_si256(vec_a, vec_b);
-
-            // compare mask with the requested match
-            __m256i cmp = _mm256_cmpeq_epi8(result, vec_a);
-
-            // verify that all bytes are set (0xFFFFFFFF, or -1 as a signed integer) or filter does not match
-            if (_mm256_movemask_epi8(cmp) != -1)
-                {
-                    return 0;
-                }
-        }
-
-    // process reminder of the bytes, that did not fit into 32 byte chunks
-    for (; i < limit_a; i++)
-        {
-            unsigned char a = (unsigned char)first_array[i];
-            unsigned char b = (unsigned char)second_array[i];
-            if ((a & b) != a)
-                {
-                    return 0;
-                }
-        }
-
-    return 1;
 }
 
 my_bool bloomupdate_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
