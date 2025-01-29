@@ -1,80 +1,98 @@
-# blf_02
-Mysql UDF extension to handle bloom filter checking in the database
+= BLF_02: Teragrep Bloom filter UDFs for MySQL
 
-This code implements 2 functions to be added to MySQL via the UDF framework.  
+This package provides two user-defined functions (UDFs) for MySQL to efficiently work with Bloom filters:
+
+- `bloommatch` function to compare two bloom filters if one is contained in the other.
+
+- `bloomupdate` function to combine two bloom filters.
+
+These UDFs enable efficient querying and manipulation of Bloom filters stored in MySQL.
+Bloom filters are represented as arrays of bytes in little-endian order.
 
 License: Apache
 
-Bloomfilters are assumed to be arrays of bytes in little-endian order.  
+== Installation
+Install the package as normal.
 
-## Installation
-Install package as normal.
-```sh
+[source,sh]
+----
 yum install blf_02.rpm
-```
+----
 
-### Enabling
+=== Enabling
 
 Read more for permissions required: https://mariadb.com/kb/en/user-defined-functions-security/
 
-#### Option 1 - Execute the premade query
-```
+==== Option 1—Execute the pre-made query
+
+[source]
+----
 mariadb < /opt/teragrep/blf_02/share/installdb.sql
-```
+----
 
-#### Option 2 - Execute the queries manually
+==== Option 2 - Execute the queries manually
 
-```
+[source]
+----
 USE mysql;
 
 DROP FUNCTION IF EXISTS bloommatch;
 DROP FUNCTION IF EXISTS bloomupdate;
 CREATE FUNCTION bloommatch RETURNS integer SONAME 'lib_mysqludf_bloom.so';
 CREATE FUNCTION bloomupdate RETURNS STRING SONAME 'lib_mysqludf_bloom.so';
-```
+----
 
-### Disabling
+=== Disabling
 
 Read more for permissions required: https://mariadb.com/kb/en/user-defined-functions-security/
 
-#### Option 1 - Execute the premade query
-```
+==== Option 1—Execute the pre-made query
+
+[source]
+----
 mariadb < /opt/teragrep/blf_02/share/uninstalldb.sql
-```
+----
 
-#### Option 2 - Execute the queries manually
+==== Option 2 - Execute the queries manually
 
-```
+[source]
+----
 USE mysql;
 
 DROP FUNCTION IF EXISTS bloommatch;
 DROP FUNCTION IF EXISTS bloomupdate;
-```
+----
 
-## Functions
+== Functions
 
-```
-bloommatch( blob a, blob b )
-```
-performs a byte by bytes check of  (a & b == a).  if true then "a" may be found in "b", if false then "a" is not in "b".
-example:
+[source]
+----
+bloommatch(blob a, blob b)
+----
+Performs a byte-by-bytes check of  `(a & b == a)`.
+If true, then `a` may be found in `b`.
+If false, then `a` is not in `b`.
 
-```
+Example:
+[source]
+----
 Connection con = ... // get the db connection
 InputStream is = ... // input stream containing a the bloom filter to locate in the table
 PreparedStatement stmt = con.prepareStatement( "SELECT * FROM bloomTable WHERE bloommatch( ?, bloomTable.filter );" );
 stmt.setBlob( 1, is );
 ResultSet rs = stmt.executeQuery();
 // rs now contains all the matching bloom filters from the table.
-```
+----
 
-```
+[source]
+----
 bloomupdate( blob a, blob b )
-```
-performs a byte by byte construct of a new filter where (a | b). 
+----
+performs a byte-by-byte construct of a new filter where (a | b).
 example:
 
-```
+[source]
+----
 Connection con = ... // get the db connection
 InputStream is = ... // input stream containing a the bloom filter to locate in the table
 PreparedStatement stmt = con.prepareStatement( "UPDATE bloomTable SET filter=bloomupdate( ?, bloomTable.filter ) WHERE id=?;" );
@@ -82,14 +100,16 @@ stmt.setBlob( 1, is );
 stmt.setint( 2, 5 );
 stmt.executeUpdate();
 // bloom filters on rows with id of 5 have been updated to include values from the blob.
-```
+----
 
-## Development
+== Development
 
 Mysql client and server headers are required to compile this code.
 
 Please do the following in the root of the source directory tree:
-```sh
+
+[source,sh]
+----
 aclocal
 autoconf
 autoheader
@@ -99,23 +119,26 @@ automake --add-missing
 make
 sudo make install
 sudo make installdb
-```
+----
 
 To remove the library from your system:
 
-```
+[source]
+----
 make uninstalldb
 make uninstall
-```
+----
 
-## Examples
+== Examples
 
-### Spark
+=== Spark
 
 Short demo how to use in practice using spark and scala.
 
-Step 1. Creating and storing filter to database:
-```
+Step 1. Creating and storing filter to a database:
+
+[source]
+----
 %spark
 
 // Generate and upload a spark bloomfilter to database
@@ -155,10 +178,12 @@ val update = ps.executeUpdate
 println("Updated rows: "+ update)
 df.show()
 conn.close()
-```
+----
 
 Step 2. Finding matching filters:
-```
+
+[source]
+----
 %spark
 
 // Create a bloomfilter and find matches
@@ -194,34 +219,36 @@ val baos = new ByteArrayOutputStream
 val resultList = Iterator.from(0).takeWhile(_ => rs.next()).map(_ => rs.getString(1)).toList
 println("Found matches: " + resultList.size)
 conn.close()
-```
+----
 
 SQL table used in demo.
-```
+
+[source]
+----
 CREATE TABLE `token_partitions` (
 `id` INT unsigned NOT NULL auto_increment,
 `partition` VARCHAR(100),
 `filter` BLOB,
 PRIMARY KEY (`id`)
 );
-```
+----
 
-## Contributing
+== Contributing
 
 // Change the repository name in the issues link to match with your project's name
 
-You can involve yourself with our project by https://github.com/teragrep/blf_02/issues/new/choose[opening an issue] or submitting a pull request. 
+You can involve yourself with our project by https://github.com/teragrep/blf_02/issues/new/choose[opening an issue] or submitting a pull request.
 
 Contribution requirements:
 
-. *All changes must be accompanied by a new or changed test.* If you think testing is not required in your pull request, include a sufficient explanation as why you think so.
+. *All changes must be accompanied by a new or changed test.* If you think testing is not required in your pull request, include a sufficient explanation as to why you think so.
 . Security checks must pass
 . Pull requests must align with the principles and http://www.extremeprogramming.org/values.html[values] of extreme programming.
 . Pull requests must follow the principles of Object Thinking and Elegant Objects (EO).
 
 Read more in our https://github.com/teragrep/teragrep/blob/main/contributing.adoc[Contributing Guideline].
 
-### Contributor License Agreement
+=== Contributor License Agreement
 
 Contributors must sign https://github.com/teragrep/teragrep/blob/main/cla.adoc[Teragrep Contributor License Agreement] before a pull request is accepted to organization's repositories. 
 
