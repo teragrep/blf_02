@@ -1,9 +1,8 @@
-= BLF_02: Teragrep Bloom filter UDFs for MySQL
+= BLF_02: BLF_02: Teragrep Bloom Filter Plugin for MariaDB
 
 This package provides two user-defined functions (UDFs) for MySQL to efficiently work with Bloom filters:
 
 - `bloommatch` function to compare two bloom filters if one is contained in the other.
-
 - `bloomupdate` function to combine two bloom filters.
 
 These UDFs enable efficient querying and manipulation of Bloom filters stored in MySQL.
@@ -12,7 +11,7 @@ Bloom filters are represented as arrays of bytes in little-endian order.
 License: Apache
 
 == Installation
-Install the package as normal.
+Install the blf_02 package.
 
 [source,sh]
 ----
@@ -23,14 +22,14 @@ yum install blf_02.rpm
 
 Read more for permissions required: https://mariadb.com/kb/en/user-defined-functions-security/
 
-==== Option 1—Execute the pre-made query
+==== Option 1 — Execute the pre-made query
 
 [source]
 ----
 mariadb < /opt/teragrep/blf_02/share/installdb.sql
 ----
 
-==== Option 2 - Execute the queries manually
+==== Option 2 — Execute the queries manually
 
 [source]
 ----
@@ -44,16 +43,16 @@ CREATE FUNCTION bloomupdate RETURNS STRING SONAME 'lib_mysqludf_bloom.so';
 
 === Disabling
 
-Read more for permissions required: https://mariadb.com/kb/en/user-defined-functions-security/
+link:++https://mariadb.com/kb/en/user-defined-functions-security/[Read more about required permissions].++[Read more for permissions required]
 
-==== Option 1—Execute the pre-made query
+==== Option 1 — Execute the pre-made query
 
-[source]
+[source, shell]
 ----
 mariadb < /opt/teragrep/blf_02/share/uninstalldb.sql
 ----
 
-==== Option 2 - Execute the queries manually
+==== Option 2 — Execute the queries manually
 
 [source]
 ----
@@ -64,16 +63,18 @@ DROP FUNCTION IF EXISTS bloomupdate;
 ----
 
 == Functions
+=== Match Function
+This function performs a byte-by-bytes check of `(a & b == a)`.
+If true, then `a` may be found in `b`.
+If false then `a` is not in `b`.
 
+Function in SQL:
 [source]
 ----
 bloommatch(blob a, blob b)
 ----
-Performs a byte-by-bytes check of  `(a & b == a)`.
-If true, then `a` may be found in `b`.
-If false, then `a` is not in `b`.
 
-Example:
+A Java example of how the function is used:
 [source]
 ----
 Connection con = ... // get the db connection
@@ -83,14 +84,16 @@ stmt.setBlob( 1, is );
 ResultSet rs = stmt.executeQuery();
 // rs now contains all the matching bloom filters from the table.
 ----
+=== Update Function
+This function performs a byte-by-byte construct of a new filter where `a | b`.
 
-[source]
+Function in SQL:
+[source, SQL]
 ----
 bloomupdate( blob a, blob b )
 ----
-performs a byte-by-byte construct of a new filter where (a | b).
-example:
 
+A Java example of how the function is used:
 [source]
 ----
 Connection con = ... // get the db connection
@@ -104,7 +107,7 @@ stmt.executeUpdate();
 
 == Development
 
-Mysql client and server headers are required to compile this code.
+MySQL client and server headers are required to compile this code.
 
 Please do the following in the root of the source directory tree:
 
@@ -133,7 +136,7 @@ make uninstall
 
 === Spark
 
-Short demo how to use in practice using spark and scala.
+A short demo of how to use blf_02 in practice by using Apache Spark and Scala.
 
 Step 1. Creating and storing filter to a database:
 
@@ -241,7 +244,7 @@ You can involve yourself with our project by https://github.com/teragrep/blf_02/
 
 Contribution requirements:
 
-. *All changes must be accompanied by a new or changed test.* If you think testing is not required in your pull request, include a sufficient explanation as to why you think so.
+. *All changes must be accompanied by a new or changed test.* If you think testing is not required in your pull request, include a sufficient explanation as why you think so.
 . Security checks must pass
 . Pull requests must align with the principles and http://www.extremeprogramming.org/values.html[values] of extreme programming.
 . Pull requests must follow the principles of Object Thinking and Elegant Objects (EO).
