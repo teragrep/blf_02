@@ -1,95 +1,117 @@
-# blf_02
-Mysql UDF extension to handle bloom filter checking in the database
+= BLF_02: Teragrep Bloom Filter Plugin for MariaDB
 
-This code implements 2 functions to be added to MySQL via the UDF framework.  
+This package provides two user-defined functions (UDFs) for MySQL to efficiently work with Bloom filters:
+
+- `bloommatch` function to compare two bloom filters if one is contained in the other.
+- `bloomupdate` function to combine two bloom filters.
+
+These UDFs enable efficient querying and manipulation of Bloom filters stored in MySQL.
+Bloom filters are represented as arrays of bytes in little-endian order.
 
 License: Apache
 
-Bloomfilters are assumed to be arrays of bytes in little-endian order.  
+== Installation
+Install the blf_02 package.
 
-## Installation
-Install package as normal.
-```sh
+[source,sh]
+----
 yum install blf_02.rpm
-```
+----
 
-### Enabling
+=== Enabling
 
-Read more for permissions required: https://mariadb.com/kb/en/user-defined-functions-security/
+link:https://mariadb.com/kb/en/user-defined-functions-security/[Read more about required permissions]
 
-#### Option 1 - Execute the premade query
-```
+==== Option 1 — Execute the pre-made query
+
+[source,shell]
+----
 mariadb < /opt/teragrep/blf_02/share/installdb.sql
-```
+----
 
-#### Option 2 - Execute the queries manually
+==== Option 2 — Execute the queries manually
 
-```
+[source,sql]
+----
 USE mysql;
 
 DROP FUNCTION IF EXISTS bloommatch;
 DROP FUNCTION IF EXISTS bloomupdate;
 CREATE FUNCTION bloommatch RETURNS integer SONAME 'lib_mysqludf_bloom.so';
 CREATE FUNCTION bloomupdate RETURNS STRING SONAME 'lib_mysqludf_bloom.so';
-```
+----
 
-### Disabling
+=== Disabling
 
-Read more for permissions required: https://mariadb.com/kb/en/user-defined-functions-security/
+link:https://mariadb.com/kb/en/user-defined-functions-security/[Read more about required permissions]
 
-#### Option 1 - Execute the premade query
-```
+==== Option 1 — Execute the pre-made query
+
+[source,shell]
+----
 mariadb < /opt/teragrep/blf_02/share/uninstalldb.sql
-```
+----
 
-#### Option 2 - Execute the queries manually
+==== Option 2 — Execute the queries manually
 
-```
+[source,sql]
+----
 USE mysql;
 
 DROP FUNCTION IF EXISTS bloommatch;
 DROP FUNCTION IF EXISTS bloomupdate;
-```
+----
 
-## Functions
+== Functions
+=== Match Function
+This function performs a byte-by-bytes check of `(a & b == a)`.
+If true, then `a` may be found in `b`.
+If false then `a` is not in `b`.
 
-```
-bloommatch( blob a, blob b )
-```
-performs a byte by bytes check of  (a & b == a).  if true then "a" may be found in "b", if false then "a" is not in "b".
-example:
+Function in SQL:
+[source,sql]
+----
+bloommatch(blob a, blob b)
+----
 
-```
-Connection con = ... // get the db connection
-InputStream is = ... // input stream containing a the bloom filter to locate in the table
+A Java example of how the function is used:
+[source,java]
+----
+Connection con = ... // Get the db connection
+InputStream is = ... // Input stream containing the bloom filter to locate in the table
 PreparedStatement stmt = con.prepareStatement( "SELECT * FROM bloomTable WHERE bloommatch( ?, bloomTable.filter );" );
 stmt.setBlob( 1, is );
 ResultSet rs = stmt.executeQuery();
-// rs now contains all the matching bloom filters from the table.
-```
+// Result set now contains all the matching bloom filters from the table.
+----
+=== Update Function
+This function performs a byte-by-byte construct of a new filter where `a | b`.
 
-```
+Function in SQL:
+[source, SQL]
+----
 bloomupdate( blob a, blob b )
-```
-performs a byte by byte construct of a new filter where (a | b). 
-example:
-
-```
-Connection con = ... // get the db connection
-InputStream is = ... // input stream containing a the bloom filter to locate in the table
+----
+A Java example of how the function is used:
+[source, java]
+----
+Connection con = ... // Get the db connection
+InputStream is = ... // Input stream containing the bloom filter to locate in the table
 PreparedStatement stmt = con.prepareStatement( "UPDATE bloomTable SET filter=bloomupdate( ?, bloomTable.filter ) WHERE id=?;" );
 stmt.setBlob( 1, is );
-stmt.setint( 2, 5 );
+stmt.setInt( 2, 5 );
 stmt.executeUpdate();
-// bloom filters on rows with id of 5 have been updated to include values from the blob.
-```
+// Bloom filters on rows with id of 5 have been updated to include values from the blob.
+----
 
-## Development
+== Development
 
-Mysql client and server headers are required to compile this code.
+MySQL client and server headers are required to compile this code.
 
-Please do the following in the root of the source directory tree:
-```sh
+Please do the following in the root directory of the source tree:
+
+[source,shell]
+----
 aclocal
 autoconf
 autoheader
@@ -99,26 +121,32 @@ automake --add-missing
 make
 sudo make install
 sudo make installdb
-```
+----
 
 To remove the library from your system:
 
-```
+[source]
+----
 make uninstalldb
 make uninstall
-```
+----
 
-## Examples
+== Spark Example
 
-### Spark
+A short demo of how to use blf_02 in practice by using Apache Spark and Scala.
 
-Short demo how to use in practice using spark and scala.
+=== Creating and Storing Bloom Filter to a Database
 
-Step 1. Creating and storing filter to database:
-```
-%spark
+In the following example, we generate a Bloom Filter from a Spark DataFrame
+and store its serialized form in a database for later use.
 
-// Generate and upload a spark bloomfilter to database
+The filter is stored in a table alongside a string value.
+When searching for a token,
+we can first check the filter before checking the value.
+
+[source,scala]
+----
+// Generate and upload a spark bloomfilter to a database
 
 import spark.implicits._
 import org.apache.spark.sql._
@@ -132,10 +160,12 @@ val expected: Long = 500
 val fpp: Double = 0.3
 
 val dburl = "DATABASE_URL"
-val updatesql = "INSERT token_partitions (`partition`, `filter`) VALUES (?,?)"
+val updatesql = "INSERT INTO `example_strings` (`value`, `filter`) VALUES (?,?)"
 val conn = DriverManager.getConnection(dburl,"DB_USERNAME","DB_PASSWORD")
+val value = "one two three"
 
-// Create a spark Dataframe with values 'one','two' and 'three'
+// Create a Spark Dataframe with values 'one', 'two' and 'three'
+// This emulates a tokenized form of the value field
 val in1 = spark.sparkContext.parallelize(List("one","two","three"))
 val df = in1.toDF("tokens")
 
@@ -145,22 +175,27 @@ val ps = conn.prepareStatement(updatesql)
 val filter = df.stat.bloomFilter($"tokens", expected, fpp)
 println(filter.mightContain("one"))
 
-// Write filter bit array to output stream
+// Write a filter bit array to the output stream
 val baos = new ByteArrayOutputStream
 filter.writeTo(baos)
 val is: InputStream = new ByteArrayInputStream(baos.toByteArray())
-ps.setString(1,"1")
+ps.setString(1, value)
 ps.setBlob(2,is)
 val update = ps.executeUpdate
 println("Updated rows: "+ update)
 df.show()
 conn.close()
-```
+----
 
-Step 2. Finding matching filters:
-```
-%spark
+=== Finding Matching Filters
+A Bloom Filter is created from a Spark DataFrame
+and compared with stored filters in the database to retrieve matching string values.
+Note that each comparison generates a new Bloom Filter for the SQL function.
 
+Imagine we want to search if a value
+contains tokens `one` and `two` from the previous example.
+[source,scala]
+----
 // Create a bloomfilter and find matches
 import spark.implicits._
 import org.apache.spark.sql._
@@ -169,48 +204,38 @@ import java.sql.DriverManager
 import org.apache.spark.util.sketch.BloomFilter
 import java.io.{ByteArrayOutputStream,ByteArrayInputStream, ObjectOutputStream, InputStream}
 
+// Generated filter array must have the same length as the one it is compared to
 val expected: Long = 500
 val fpp: Double = 0.3
 
 val dburl = "DATABASE_URL"
 val conn = DriverManager.getConnection(dburl,"DB_USERNAME","DB_PASSWORD")
 
-val updatesql = "SELECT `partition` FROM token_partitions WHERE bloommatch(?, token_partitions.filter);"
+val updatesql = "SELECT `value` FROM `example_strings` WHERE bloommatch(?, `example_strings`.`filter`);"
 val ps = conn.prepareStatement(updatesql)
 
-// Creating filter with values 'one' and 'two'
+// Creating a filter with values 'one' and 'two'
 val in2 = spark.sparkContext.parallelize(List("one","two"))
 val df2 = in2.toDF("tokens")
 val filter = df2.stat.bloomFilter($"tokens", expected, fpp)
 
 val baos = new ByteArrayOutputStream
             filter.writeTo(baos)
-            baos.flush
+            baos.flush()
             val is :InputStream = new ByteArrayInputStream(baos.toByteArray())
             ps.setBlob(1, is)
             val rs = ps.executeQuery
 
-// Will find a match since tokens searched are a subset of the database filter
+// Will find a match since tokens searched are both in the filter
 val resultList = Iterator.from(0).takeWhile(_ => rs.next()).map(_ => rs.getString(1)).toList
 println("Found matches: " + resultList.size)
 conn.close()
-```
-
-SQL table used in demo.
-```
-CREATE TABLE `token_partitions` (
-`id` INT unsigned NOT NULL auto_increment,
-`partition` VARCHAR(100),
-`filter` BLOB,
-PRIMARY KEY (`id`)
-);
-```
-
-## Contributing
+----
+== Contributing
 
 // Change the repository name in the issues link to match with your project's name
 
-You can involve yourself with our project by https://github.com/teragrep/blf_02/issues/new/choose[opening an issue] or submitting a pull request. 
+You can involve yourself with our project by https://github.com/teragrep/blf_02/issues/new/choose[opening an issue] or submitting a pull request.
 
 Contribution requirements:
 
@@ -221,7 +246,7 @@ Contribution requirements:
 
 Read more in our https://github.com/teragrep/teragrep/blob/main/contributing.adoc[Contributing Guideline].
 
-### Contributor License Agreement
+=== Contributor License Agreement
 
 Contributors must sign https://github.com/teragrep/teragrep/blob/main/cla.adoc[Teragrep Contributor License Agreement] before a pull request is accepted to organization's repositories. 
 
