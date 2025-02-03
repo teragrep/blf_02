@@ -77,12 +77,12 @@ bloommatch(blob a, blob b)
 A Java example of how the function is used:
 [source,java]
 ----
-Connection con = ... // get the db connection
-InputStream is = ... // input stream containing the bloom filter to locate in the table
+Connection con = ... // Get the db connection
+InputStream is = ... // Input stream containing the bloom filter to locate in the table
 PreparedStatement stmt = con.prepareStatement( "SELECT * FROM bloomTable WHERE bloommatch( ?, bloomTable.filter );" );
 stmt.setBlob( 1, is );
 ResultSet rs = stmt.executeQuery();
-// rs now contains all the matching bloom filters from the table.
+// Result set now contains all the matching bloom filters from the table.
 ----
 === Update Function
 This function performs a byte-by-byte construct of a new filter where `a | b`.
@@ -95,13 +95,13 @@ bloomupdate( blob a, blob b )
 A Java example of how the function is used:
 [source, java]
 ----
-Connection con = ... // get the db connection
-InputStream is = ... // input stream containing the bloom filter to locate in the table
+Connection con = ... // Get the db connection
+InputStream is = ... // Input stream containing the bloom filter to locate in the table
 PreparedStatement stmt = con.prepareStatement( "UPDATE bloomTable SET filter=bloomupdate( ?, bloomTable.filter ) WHERE id=?;" );
 stmt.setBlob( 1, is );
 stmt.setInt( 2, 5 );
 stmt.executeUpdate();
-// bloom filters on rows with id of 5 have been updated to include values from the blob.
+// Bloom filters on rows with id of 5 have been updated to include values from the blob.
 ----
 
 == Development
@@ -140,9 +140,13 @@ A short demo of how to use blf_02 in practice by using Apache Spark and Scala.
 We generate a Bloom Filter from a Spark DataFrame
 and store its serialized form in a database for later use.
 
+The filter is stored in a table alongside a string value,
+and when searching for a token,
+we can first check the filter before checking the value.
+
 [source,scala]
 ----
-// Generate and upload a spark bloomfilter to database
+// Generate and upload a spark bloomfilter to a database
 
 import spark.implicits._
 import org.apache.spark.sql._
@@ -156,10 +160,12 @@ val expected: Long = 500
 val fpp: Double = 0.3
 
 val dburl = "DATABASE_URL"
-val updatesql = "INSERT token_partitions (`partition`, `filter`) VALUES (?,?)"
+val updatesql = "INSERT INTO `example_strings` (`value`, `filter`) VALUES (?,?)"
 val conn = DriverManager.getConnection(dburl,"DB_USERNAME","DB_PASSWORD")
+val value = "one two three"
 
-// Create a spark Dataframe with values 'one','two' and 'three'
+// Create a spark Dataframe with values 'one', 'two' and 'three'
+// This emulates a tokenized form of the value field
 val in1 = spark.sparkContext.parallelize(List("one","two","three"))
 val df = in1.toDF("tokens")
 
@@ -169,11 +175,11 @@ val ps = conn.prepareStatement(updatesql)
 val filter = df.stat.bloomFilter($"tokens", expected, fpp)
 println(filter.mightContain("one"))
 
-// Write filter bit array to output stream
+// Write a filter bit array to the output stream
 val baos = new ByteArrayOutputStream
 filter.writeTo(baos)
 val is: InputStream = new ByteArrayInputStream(baos.toByteArray())
-ps.setString(1,"1")
+ps.setString(1, value)
 ps.setBlob(2,is)
 val update = ps.executeUpdate
 println("Updated rows: "+ update)
@@ -182,11 +188,12 @@ conn.close()
 ----
 
 === Finding Matching Filters
-
 A Bloom Filter is created from a Spark DataFrame
-and compared with stored filters in the database to retrieve matching partitions.
+and compared with stored filters in the database to retrieve matching string values.
 Note that each comparison generates a new Bloom Filter for the SQL function.
 
+Imagine we want to search if a value
+contains tokens `one` and `two` from the previous example
 [source,scala]
 ----
 // Create a bloomfilter and find matches
@@ -197,16 +204,17 @@ import java.sql.DriverManager
 import org.apache.spark.util.sketch.BloomFilter
 import java.io.{ByteArrayOutputStream,ByteArrayInputStream, ObjectOutputStream, InputStream}
 
+// Generated filter array must have the same length as the one it is compared to
 val expected: Long = 500
 val fpp: Double = 0.3
 
 val dburl = "DATABASE_URL"
 val conn = DriverManager.getConnection(dburl,"DB_USERNAME","DB_PASSWORD")
 
-val updatesql = "SELECT `partition` FROM token_partitions WHERE bloommatch(?, token_partitions.filter);"
+val updatesql = "SELECT `value` FROM `example_strings` WHERE bloommatch(?, `example_strings`.`filter`);"
 val ps = conn.prepareStatement(updatesql)
 
-// Creating filter with values 'one' and 'two'
+// Creating a filter with values 'one' and 'two'
 val in2 = spark.sparkContext.parallelize(List("one","two"))
 val df2 = in2.toDF("tokens")
 val filter = df2.stat.bloomFilter($"tokens", expected, fpp)
@@ -218,7 +226,7 @@ val baos = new ByteArrayOutputStream
             ps.setBlob(1, is)
             val rs = ps.executeQuery
 
-// Will find a match since tokens searched are a subset of the database filter
+// Will find a match since tokens searched are both in the filter
 val resultList = Iterator.from(0).takeWhile(_ => rs.next()).map(_ => rs.getString(1)).toList
 println("Found matches: " + resultList.size)
 conn.close()
