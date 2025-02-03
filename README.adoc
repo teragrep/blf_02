@@ -137,11 +137,11 @@ A short demo of how to use blf_02 in practice by using Apache Spark and Scala.
 
 === Creating and Storing Bloom Filter to a Database
 
-We generate a Bloom Filter from a Spark DataFrame
+In the following example, we generate a Bloom Filter from a Spark DataFrame
 and store its serialized form in a database for later use.
 
-The filter is stored in a table alongside a string value,
-and when searching for a token,
+The filter is stored in a table alongside a string value.
+When searching for a token,
 we can first check the filter before checking the value.
 
 [source,scala]
@@ -164,7 +164,7 @@ val updatesql = "INSERT INTO `example_strings` (`value`, `filter`) VALUES (?,?)"
 val conn = DriverManager.getConnection(dburl,"DB_USERNAME","DB_PASSWORD")
 val value = "one two three"
 
-// Create a spark Dataframe with values 'one', 'two' and 'three'
+// Create a Spark Dataframe with values 'one', 'two' and 'three'
 // This emulates a tokenized form of the value field
 val in1 = spark.sparkContext.parallelize(List("one","two","three"))
 val df = in1.toDF("tokens")
@@ -193,7 +193,7 @@ and compared with stored filters in the database to retrieve matching string val
 Note that each comparison generates a new Bloom Filter for the SQL function.
 
 Imagine we want to search if a value
-contains tokens `one` and `two` from the previous example
+contains tokens `one` and `two` from the previous example.
 [source,scala]
 ----
 // Create a bloomfilter and find matches
