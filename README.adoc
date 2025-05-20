@@ -106,16 +106,19 @@ stmt.executeUpdate();
 
 == Development
 
-MySQL client and server headers are required to compile this code.
+Compiling this project requires at least the following packages to be installed:
+
+ - `make`
+ - `automake`
+ - `autoconf`
+ - `libtool`
+ - `mariadb-devel`
 
 Please do the following in the root directory of the source tree:
 
 [source,shell]
 ----
-aclocal
-autoconf
-autoheader
-automake --add-missing
+autoreconf -fvi
 
 ./configure
 make
