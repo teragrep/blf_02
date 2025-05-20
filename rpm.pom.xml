@@ -96,9 +96,18 @@
                 </source>
               </sources>
             </mapping>
-            <!-- symlink for the payload -->
+            <!-- symlink for the payload (MariaDB) -->
             <mapping>
               <directory>/usr/lib64/mariadb/plugin</directory>
+              <sources>
+                <softlinkSource>
+                  <location>/opt/teragrep/${project.artifactId}/lib/lib_mysqludf_bloom.so</location>
+                </softlinkSource>
+              </sources>
+            </mapping>
+            <!-- symlink for the payload (MySQL) -->
+            <mapping>
+              <directory>/usr/lib64/mysql/plugin</directory>
               <sources>
                 <softlinkSource>
                   <location>/opt/teragrep/${project.artifactId}/lib/lib_mysqludf_bloom.so</location>
