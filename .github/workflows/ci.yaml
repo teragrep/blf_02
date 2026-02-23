@@ -1,0 +1,24 @@
+name: CI
+
+on: [ push ]
+
+jobs:
+  upload:
+    name: CI
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ "el8", "el9" ]
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build container
+        run: docker build . --tag builder -f "Dockerfile.${{ matrix.os }}"
+
+      - name: Build project
+        run: docker run -v "${{ github.workspace }}:/code:Z" builder
