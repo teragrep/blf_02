@@ -1,0 +1,75 @@
+name: Upload Artifact as GitHub Release Attachment
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  upload:
+    name: Build and upload release
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        os: [ "el8", "el9" ]
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Local Maven Repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: 8.0.292+10
+          distribution: 'adopt'
+
+      - name: Build container
+        run: docker build . --tag builder -f "Dockerfile.${{ matrix.os }}"
+
+      - name: Build project
+        run: docker run -v "${{ github.workspace }}:/code:Z" builder
+
+      - name: Prepare RPM GPG signing
+        run: |
+          sudo apt-get install expect pinentry-tty;
+          printf "RPM_SIGNING_KEYNAME=%q\n" "$(echo "${{ secrets.RPM_SIGNING_PUBLIC_KEY }}" | gpg --show-keys --with-colons | awk -F':' '/uid/{print $10}')" >> $GITHUB_ENV;
+          echo "${{ secrets.RPM_SIGNING_PRIVATE_KEY }}" | gpg --batch --import;
+          echo "%_gpg_sign_cmd_extra_args --pinentry-mode loopback --passphrase \"%{getenv:RPM_SIGNING_PASSPHRASE}\"" >> "${HOME}/.rpmmacros";
+
+      - name: Build and sign the rpm
+        run: mvn --batch-mode -Drevision=${{ github.event.release.tag_name }} -Dsha1= -Dchangelist= -Ppublish-github-packages -f rpm.pom.xml package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OS_VERSION: ${{ matrix.os }}
+          RPM_SIGNING_KEYNAME: ${{ env.RPM_SIGNING_KEYNAME }}
+          RPM_SIGNING_PASSPHRASE: ${{ secrets.RPM_SIGNING_PASSPHRASE }}
+
+      - name: Attach rpm to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/rpm/com.teragrep-blf_02/RPMS/x86_64/com.teragrep-blf_02-*.rpm
+
+      - name: Update pkg_01 releases repository
+        uses: teragrep/dfg_01@3.3.0
+        with:
+          from_repository: "${{ github.repository }}"
+          from_version: "${{ github.event.release.tag_name }}"
+          to_repository: "${{ github.repository_owner }}/pkg_01"
+          to_path: "linux/${{ matrix.os }}"
+          deploy_key: ${{ secrets.PKG_01_DEPLOY_KEY }}
+          files: target/rpm/com.teragrep-blf_02/RPMS/x86_64/com.teragrep-blf_02-*.rpm
+          gpg_public_key: "${{ secrets.RPM_SIGNING_PUBLIC_KEY }}"
+          repo_baseurl: "${{ vars.PKG_01_CENTRAL_BASEURL }}"
+          repo_name: "teragrep-${{ matrix.os }}-releases"
+        env:
+          has_deploy_key: ${{ secrets.PKG_01_DEPLOY_KEY != '' }}
+        if: ${{ env.has_deploy_key == 'true' }}

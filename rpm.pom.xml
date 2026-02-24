@@ -5,7 +5,7 @@
   <packaging>rpm</packaging>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>blf_02</artifactId>
-  <version>${revision}${sha1}${changelist}.el8</version>
+  <version>${revision}${sha1}${changelist}.${env.OS_VERSION}</version>
   <name>blf_02</name>
   <description>Teragrep Bloom Filter Plugin for MariaDB</description>
   <groupId>com.teragrep</groupId>
@@ -57,6 +57,10 @@
           <defaultGroupname>root</defaultGroupname>
           <defaultFilemode>0644</defaultFilemode>
           <defaultDirmode>0755</defaultDirmode>
+          <keyname>${env.RPM_SIGNING_KEYNAME}</keyname>
+          <keyPassphrase>
+            <passphrase>${env.RPM_SIGNING_PASSPHRASE}</passphrase>
+          </keyPassphrase>
           <defineStatements>
             <!-- _python_bytecompile_extra 0 doesn't work so we take the original script and just replace what we do not want -->
             <defineStatement>__os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')</defineStatement>
