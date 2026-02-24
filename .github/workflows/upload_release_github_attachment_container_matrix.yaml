@@ -59,7 +59,7 @@ jobs:
           files: target/rpm/com.teragrep-blf_02/RPMS/x86_64/com.teragrep-blf_02-*.rpm
 
       - name: Update pkg_01 releases repository
-        uses: teragrep/dfg_01@3.3.0
+        uses: teragrep/dfg_01@4.0.0
         with:
           from_repository: "${{ github.repository }}"
           from_version: "${{ github.event.release.tag_name }}"
@@ -68,7 +68,7 @@ jobs:
           deploy_key: ${{ secrets.PKG_01_DEPLOY_KEY }}
           files: target/rpm/com.teragrep-blf_02/RPMS/x86_64/com.teragrep-blf_02-*.rpm
           gpg_public_key: "${{ secrets.RPM_SIGNING_PUBLIC_KEY }}"
-          repo_baseurl: "${{ vars.PKG_01_CENTRAL_BASEURL }}"
+          repo_baseurl: "${{ vars.PKG_01_BASEURL }}"
           repo_name: "teragrep-${{ matrix.os }}-releases"
         env:
           has_deploy_key: ${{ secrets.PKG_01_DEPLOY_KEY != '' }}
